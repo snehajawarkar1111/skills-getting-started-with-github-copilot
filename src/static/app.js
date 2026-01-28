@@ -27,6 +27,64 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
         `;
 
+        // Participants section
+        const participantsSection = document.createElement("div");
+        participantsSection.className = "participants-section";
+
+        const participantsTitle = document.createElement("h5");
+        participantsTitle.textContent = "Participants:";
+        participantsSection.appendChild(participantsTitle);
+
+        const participantsList = document.createElement("ul");
+        participantsList.className = "participants-list";
+
+
+        if (details.participants && details.participants.length > 0) {
+          details.participants.forEach((email) => {
+            const li = document.createElement("li");
+            li.className = "participant-item";
+            // Hide bullet points via CSS, but keep li for semantics
+            const emailSpan = document.createElement("span");
+            emailSpan.textContent = email;
+
+            // Add delete icon
+            const deleteBtn = document.createElement("span");
+            deleteBtn.className = "delete-icon";
+            deleteBtn.title = "Remove participant";
+            deleteBtn.innerHTML = "&#128465;"; // Trash can emoji
+            deleteBtn.style.cursor = "pointer";
+            deleteBtn.style.marginLeft = "8px";
+            deleteBtn.addEventListener("click", async () => {
+              if (!confirm(`Remove ${email} from ${name}?`)) return;
+              try {
+                const resp = await fetch(`/activities/${encodeURIComponent(name)}/participants/${encodeURIComponent(email)}`, {
+                  method: "DELETE",
+                });
+                const result = await resp.json();
+                if (resp.ok) {
+                  fetchActivities();
+                } else {
+                  alert(result.detail || "Failed to remove participant");
+                }
+              } catch (err) {
+                alert("Error removing participant");
+              }
+            });
+
+            li.appendChild(emailSpan);
+            li.appendChild(deleteBtn);
+            participantsList.appendChild(li);
+          });
+        } else {
+          const li = document.createElement("li");
+          li.textContent = "No participants yet";
+          li.style.color = "#888";
+          participantsList.appendChild(li);
+        }
+
+        participantsSection.appendChild(participantsList);
+        activityCard.appendChild(participantsSection);
+
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
@@ -58,10 +116,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await response.json();
 
+
       if (response.ok) {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh activities list after signup
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
